@@ -1,40 +1,32 @@
 name: Build HitGuard Core AAR
-
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.24'
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-
       - name: Install gomobile
         run: |
           go install golang.org/x/mobile/cmd/gomobile@latest
           go install golang.org/x/mobile/cmd/gobind@latest
           gomobile init
-
       - name: Get dependencies
         run: go mod tidy
-
       - name: Build AAR
         run: |
           gomobile bind -v \
@@ -42,10 +34,10 @@ jobs:
             -ldflags='-s -w' \
             -o hitguard-core.aar \
             ./
-
       - name: Build geosite & geoip assets
-        run: bash gen_assets.sh
-
+        run: |
+          mkdir -p data
+          bash gen_assets.sh
       - name: Upload AAR artifact
         uses: actions/upload-artifact@v4
         with:
@@ -53,8 +45,7 @@ jobs:
           path: |
             hitguard-core.aar
             hitguard-core-sources.jar
-            assets/
-
+            data/
       - name: Create Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
@@ -64,7 +55,7 @@ jobs:
           files: |
             hitguard-core.aar
             hitguard-core-sources.jar
-            assets/geosite.dat
-            assets/geoip.dat
+            data/geosite.dat
+            data/geoip.dat
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
